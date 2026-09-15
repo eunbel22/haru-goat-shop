@@ -173,6 +173,21 @@ function paintCheckout() {
 
   // ▼ 여기에 「결제를 시작했다」를 알리는 코드가 들어갑니다 (뒤 수업에서)
 
+  window.dataLayer = window.dataLayer || [];
+  dataLayer.push({ ecommerce: null });
+  dataLayer.push({
+    event: "begin_checkout",
+    ecommerce: {
+      currency: "KRW",
+      value: Cart.total(),
+      items: Cart.read().map(i => {
+        const p = findProduct(i.id);
+        return { item_id: p.id, item_name: p.name, price: p.price, quantity: i.qty };
+      })
+    },
+    free_shipping: Cart.total() >= 50000 ? "yes" : "no"
+  });
+
   form.addEventListener("submit", e => {
     e.preventDefault();
 

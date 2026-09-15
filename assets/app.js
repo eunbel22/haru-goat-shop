@@ -113,6 +113,17 @@ function paintDetail() {
       <button class="btn" id="add-to-cart">장바구니에 담기</button>
     </div>`;
 
+  window.dataLayer = window.dataLayer || [];
+  dataLayer.push({ ecommerce: null });
+  dataLayer.push({
+    event: "view_item",
+    ecommerce: {
+      currency: "KRW",
+      value: p.price,
+      items: [{ item_id: p.id, item_name: p.name, price: p.price, quantity: 1 }]
+    }
+  });
+
   document.querySelector("#add-to-cart").addEventListener("click", () => {
     Cart.add(p.id);
     location.href = "cart.html";

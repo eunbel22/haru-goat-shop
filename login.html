@@ -76,6 +76,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
 
+  const MESSAGES = {
+    "auth/invalid-credential": "이메일 또는 비밀번호가 맞지 않아요. 다시 확인해서 입력하시거나, 기억나지 않으면 「비밀번호를 잊으셨나요?」를 눌러 주세요.",
+    "auth/email-already-in-use": "이미 가입된 이메일이에요. 로그인을 눌러 주시고, 비밀번호가 기억나지 않으면 「비밀번호를 잊으셨나요?」를 눌러 주세요.",
+    "auth/weak-password": "비밀번호가 너무 짧거나 쉬워요. 6자 이상으로 다시 입력한 뒤 가입을 눌러 주세요.",
+    "auth/invalid-email": "이메일 주소 형식이 맞지 않아요. @와 점(.)이 들어간 주소로 다시 입력해 주세요."
+  };
+
+  function friendly(code) {
+    return MESSAGES[code] || "문제가 생겼어요. 조금 뒤에 다시 시도해 주세요.";
+  }
+
   let afterDelay = 1000;
 
   function goAfterLogin() {
@@ -103,7 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         await sendEmailVerification(result.user);
         messageEl.textContent = "인증 메일을 보냈습니다. 메일함과 스팸함을 확인해 주세요.";
       } catch (mailError) {
-        messageEl.textContent = `가입은 됐지만 인증 메일을 보내지 못했습니다: ${mailError.code}`;
+        messageEl.textContent = "가입은 됐어요. 인증 메일은 마이페이지에서 다시 보낼 수 있어요.";
       }
       afterDelay = 3000;
 
@@ -119,7 +130,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       goAfterLogin();
     } catch (error) {
-      messageEl.textContent = error.code;
+      messageEl.textContent = friendly(error.code);
     }
   });
 
@@ -136,7 +147,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
       if (error.code !== "auth/user-not-found") {
-        messageEl.textContent = error.code;
+        messageEl.textContent = friendly(error.code);
         return;
       }
     }
@@ -160,7 +171,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       goAfterLogin();
     } catch (error) {
-      messageEl.textContent = error.code;
+      messageEl.textContent = friendly(error.code);
     }
   });
 
@@ -171,7 +182,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       emailEl.value = "";
       passwordEl.value = "";
     } catch (error) {
-      messageEl.textContent = error.code;
+      messageEl.textContent = friendly(error.code);
     }
   });
 </script>

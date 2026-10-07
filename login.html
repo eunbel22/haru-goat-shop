@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 — GOAT상점</title>
+<meta name="description" content="하루상점 로그인">
+<link rel="stylesheet" href="assets/style.css">
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MTQR4WXR');</script>
+<!-- End Google Tag Manager -->
+
+</head>
+<body>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTQR4WXR"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<header class="site"><div class="wrap">
+  <a class="brand" href="index.html">GOAT상점</a>
+  <nav class="site">
+    <a href="index.html">상품</a>
+    <a href="about.html">가게 소개</a>
+    <a href="shipping.html">배송·교환</a>
+    <a href="cart.html">장바구니<span class="cart-count">0</span></a>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h2>로그인</h2>
+  <div class="auth-form" style="max-width: 400px; margin: 30px 0;">
+    <input type="email" id="email" placeholder="이메일" style="width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font-family: inherit;">
+    <input type="password" id="password" placeholder="비밀번호" style="width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font-family: inherit;">
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button id="signup" style="flex: 1; padding: 12px; background: var(--accent2); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: .2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">가입</button>
+      <button id="login" style="flex: 1; padding: 12px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: .2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">로그인</button>
+      <button id="logout" style="flex: 1; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: .2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">로그아웃</button>
+    </div>
+
+    <div id="message" style="padding: 12px; border-radius: 8px; background: var(--card); color: var(--sub); text-align: center; min-height: 20px;"></div>
+  </div>
+</div></main>
+
+<footer class="site"><div class="wrap"></div></footer>
+<script src="assets/shop.js"></script>
+<script src="assets/app.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
+    authDomain: "goat-shop-1e768.firebaseapp.com",
+    projectId: "goat-shop-1e768",
+    storageBucket: "goat-shop-1e768.firebasestorage.app",
+    messagingSenderId: "1069398250098",
+    appId: "1:1069398250098:web:c375cf80eaf41f512a68eb"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const messageEl = document.getElementById("message");
+  const emailEl = document.getElementById("email");
+  const passwordEl = document.getElementById("password");
+
+  document.getElementById("signup").addEventListener("click", async () => {
+    const email = emailEl.value;
+    const password = passwordEl.value;
+
+    if (!email || !password) {
+      messageEl.textContent = "이메일과 비밀번호를 입력해주세요";
+      return;
+    }
+
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      messageEl.textContent = `가입됨: ${result.user.email}`;
+      emailEl.value = "";
+      passwordEl.value = "";
+    } catch (error) {
+      messageEl.textContent = error.code;
+    }
+  });
+
+  document.getElementById("login").addEventListener("click", async () => {
+    const email = emailEl.value;
+    const password = passwordEl.value;
+
+    if (!email || !password) {
+      messageEl.textContent = "이메일과 비밀번호를 입력해주세요";
+      return;
+    }
+
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      messageEl.textContent = `로그인됨: ${result.user.email}`;
+      emailEl.value = "";
+      passwordEl.value = "";
+    } catch (error) {
+      messageEl.textContent = error.code;
+    }
+  });
+
+  document.getElementById("logout").addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+      messageEl.textContent = "로그아웃됨";
+      emailEl.value = "";
+      passwordEl.value = "";
+    } catch (error) {
+      messageEl.textContent = error.code;
+    }
+  });
+</script>
+</body>
+</html>

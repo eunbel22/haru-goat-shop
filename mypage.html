@@ -15,6 +15,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-MTQR4WXR');</script>
 <!-- End Google Tag Manager -->
 
+<script type="module" src="assets/auth-state.js"></script>
 </head>
 <body>
 
@@ -46,27 +47,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/shop.js"></script>
 <script src="assets/app.js"></script>
 <script type="module">
-  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+  import { signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
-    authDomain: "goat-shop-1e768.firebaseapp.com",
-    projectId: "goat-shop-1e768",
-    storageBucket: "goat-shop-1e768.firebasestorage.app",
-    messagingSenderId: "1069398250098",
-    appId: "1:1069398250098:web:c375cf80eaf41f512a68eb"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
+  const auth = window.authStateManager.getCurrentAuth();
   const loadingEl = document.getElementById("loading");
   const contentEl = document.getElementById("content");
   const emailDisplayEl = document.getElementById("email-display");
   const logoutBtnEl = document.getElementById("logout-btn");
 
   // 모든 화면의 헤더 업데이트
-  window.authStateManager?.onAuthStateChanged((user) => {
+  window.authStateManager.onAuthStateChanged((user) => {
     if (user) {
       // 로그인됨: 이메일 표시
       loadingEl.style.display = "none";

@@ -72,6 +72,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
 
+  function goAfterLogin() {
+    let dest = "mypage.html";
+    const want = new URLSearchParams(location.search).get("redirect");
+    try {
+      const u = new URL(want, location.origin);
+      if (want && u.origin === location.origin) dest = u.pathname + u.search;
+    } catch (e) {}
+    setTimeout(() => { location.href = dest; }, 1000);
+  }
+
   document.getElementById("signup").addEventListener("click", async () => {
     const email = emailEl.value;
     const password = passwordEl.value;
@@ -95,7 +105,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       emailEl.value = "";
       passwordEl.value = "";
 
-      setTimeout(() => { location.href = "index.html"; }, 1000);
+      goAfterLogin();
     } catch (error) {
       messageEl.textContent = error.code;
     }
@@ -116,7 +126,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       emailEl.value = "";
       passwordEl.value = "";
 
-      setTimeout(() => { location.href = "index.html"; }, 1000);
+      goAfterLogin();
     } catch (error) {
       messageEl.textContent = error.code;
     }

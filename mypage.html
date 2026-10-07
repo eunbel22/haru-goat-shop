@@ -39,6 +39,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div id="loading" style="padding: 40px; text-align: center; color: var(--sub);">확인 중...</div>
   <div id="content" style="display: none; max-width: 400px;">
     <p id="email-display" style="padding: 20px; background: var(--card); border-radius: 8px; margin-bottom: 20px;"></p>
+    <div id="verify-box" style="display: none; margin-bottom: 20px;">
+      <p id="verify-note" style="margin: 0 0 12px; color: var(--sub);">이메일 인증이 아직 안 됐습니다. 메일함과 스팸함에서 인증 링크를 눌러 주세요.</p>
+      <button id="resend-btn" style="width: 100%; padding: 12px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">인증 메일 다시 보내기</button>
+      <p id="resend-msg" style="margin: 12px 0 0; color: var(--sub);"></p>
+    </div>
     <button id="logout-btn" style="width: 100%; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">로그아웃</button>
   </div>
 </div></main>
@@ -47,21 +52,39 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/shop.js"></script>
 <script src="assets/app.js"></script>
 <script type="module">
-  import { signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+  import { signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
   const auth = window.authStateManager.getCurrentAuth();
   const loadingEl = document.getElementById("loading");
   const contentEl = document.getElementById("content");
   const emailDisplayEl = document.getElementById("email-display");
   const logoutBtnEl = document.getElementById("logout-btn");
+  const verifyBoxEl = document.getElementById("verify-box");
+  const resendBtnEl = document.getElementById("resend-btn");
+  const resendMsgEl = document.getElementById("resend-msg");
+
+  resendBtnEl.addEventListener("click", async () => {
+    resendMsgEl.textContent = "";
+    resendBtnEl.disabled = true;
+    try {
+      await sendEmailVerification(auth.currentUser);
+      resendMsgEl.textContent = "인증 메일을 다시 보냈습니다. 메일함과 스팸함을 확인해 주세요.";
+    } catch (error) {
+      resendMsgEl.textContent = error.code === "auth/too-many-requests" ? "잠시 뒤에 다시 눌러 주세요." : error.code;
+    } finally {
+      resendBtnEl.disabled = false;
+    }
+  });
 
   // 모든 화면의 헤더 업데이트
-  window.authStateManager.onAuthStateChanged((user) => {
+  window.authStateManager.onAuthStateChanged(async (user) => {
     if (user) {
+      try { await user.reload(); } catch (e) {}
       // 로그인됨: 이메일 표시
       loadingEl.style.display = "none";
       contentEl.style.display = "block";
       emailDisplayEl.textContent = "계정: " + user.email;
+      verifyBoxEl.style.display = user.emailVerified ? "none" : "block";
 
       logoutBtnEl.addEventListener("click", async () => {
         await signOut(auth);

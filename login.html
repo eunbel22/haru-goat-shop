@@ -57,7 +57,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/app.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
@@ -74,6 +74,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const emailEl = document.getElementById("email");
   const passwordEl = document.getElementById("password");
 
+  let afterDelay = 1000;
+
   function goAfterLogin() {
     let dest = "mypage.html";
     const want = new URLSearchParams(location.search).get("redirect");
@@ -81,7 +83,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       const u = new URL(want, location.origin);
       if (want && u.origin === location.origin) dest = u.pathname + u.search;
     } catch (e) {}
-    setTimeout(() => { location.href = dest; }, 1000);
+    setTimeout(() => { location.href = dest; }, afterDelay);
   }
 
   document.getElementById("signup").addEventListener("click", async () => {
@@ -95,7 +97,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      messageEl.textContent = `가입됨: ${result.user.email}`;
+      try {
+        await sendEmailVerification(result.user);
+        messageEl.textContent = "인증 메일을 보냈습니다. 메일함과 스팸함을 확인해 주세요.";
+      } catch (mailError) {
+        messageEl.textContent = `가입은 됐지만 인증 메일을 보내지 못했습니다: ${mailError.code}`;
+      }
+      afterDelay = 3000;
 
       window.dataLayer = window.dataLayer || [];
       dataLayer.push({ ecommerce: null });

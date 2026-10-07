@@ -13,6 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+auth.languageCode = "ko";
 
 // 헤더의 로그인 상태 표시 영역
 function updateHeader(user) {

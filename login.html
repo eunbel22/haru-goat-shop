@@ -15,6 +15,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-MTQR4WXR');</script>
 <!-- End Google Tag Manager -->
 
+<script type="module" src="assets/auth-state.js"></script>
 </head>
 <body>
 
@@ -83,6 +84,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
       messageEl.textContent = `가입됨: ${result.user.email}`;
+
+      window.dataLayer = window.dataLayer || [];
+      dataLayer.push({ ecommerce: null });
+      dataLayer.push({
+        event: "sign_up",
+        method: "email"
+      });
+
       emailEl.value = "";
       passwordEl.value = "";
     } catch (error) {

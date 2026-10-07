@@ -3,12 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GOAT상점</title>
-<meta name="description" content="매일 쓰는 전자제품을 고릅니다">
+<title>마이페이지 — GOAT상점</title>
+<meta name="description" content="마이페이지">
 <link rel="stylesheet" href="assets/style.css">
 
-<meta name="google-site-verification" content="x4loUPRsdbkzhiSfK5c1v69WOjO8U_ZFjVpA12tIFZ4" />
-<!-- 태그 관리자 코드가 들어갈 자리 (머리) -->
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -17,11 +15,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','GTM-MTQR4WXR');</script>
 <!-- End Google Tag Manager -->
 
-<script type="module" src="assets/auth-state.js"></script>
 </head>
 <body>
 
-<!-- 태그 관리자 코드가 들어갈 자리 (몸통 맨 위) -->
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTQR4WXR"
 height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -37,26 +33,22 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </nav>
 </div></header>
 
-<section class="hero"><div class="wrap">
-  <h1 id="hero-title">GOAT상점</h1>
-  <p id="hero-tagline">일상을 조금 더 편하게 만드는 전자제품을 고릅니다</p>
-</div></section>
-
 <main><div class="wrap">
-  <h2>오늘의 제품</h2>
-  <p class="lead">여섯 가지를 두고 있습니다. 하나씩 눌러 보세요.</p>
-  <div class="grid" id="product-list"></div>
+  <h2>마이페이지</h2>
+  <div id="loading" style="padding: 40px; text-align: center; color: var(--sub);">확인 중...</div>
+  <div id="content" style="display: none; max-width: 400px;">
+    <p id="email-display" style="padding: 20px; background: var(--card); border-radius: 8px; margin-bottom: 20px;"></p>
+    <button id="logout-btn" style="width: 100%; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">로그아웃</button>
+  </div>
 </div></main>
+
 <footer class="site"><div class="wrap"></div></footer>
 <script src="assets/shop.js"></script>
 <script src="assets/app.js"></script>
 <script type="module">
-  // Import the functions you need from the SDKs you need
+  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
 
-  // Your web app's Firebase configuration
   const firebaseConfig = {
     apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
     authDomain: "goat-shop-1e768.firebaseapp.com",
@@ -66,9 +58,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     appId: "1:1069398250098:web:c375cf80eaf41f512a68eb"
   };
 
-  // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-  console.log("Firebase 연결:", app.options.projectId);
+  const auth = getAuth(app);
+  const loadingEl = document.getElementById("loading");
+  const contentEl = document.getElementById("content");
+  const emailDisplayEl = document.getElementById("email-display");
+  const logoutBtnEl = document.getElementById("logout-btn");
+
+  // 모든 화면의 헤더 업데이트
+  window.authStateManager?.onAuthStateChanged((user) => {
+    if (user) {
+      // 로그인됨: 이메일 표시
+      loadingEl.style.display = "none";
+      contentEl.style.display = "block";
+      emailDisplayEl.textContent = "계정: " + user.email;
+
+      logoutBtnEl.addEventListener("click", async () => {
+        await signOut(auth);
+        location.href = "index.html";
+      });
+    } else {
+      // 로그인 안 됨: login.html로 리다이렉트
+      location.href = "login.html?redirect=" + encodeURIComponent(location.href);
+    }
+  });
 </script>
 </body>
 </html>

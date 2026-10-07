@@ -94,6 +94,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
       emailEl.value = "";
       passwordEl.value = "";
+
+      setTimeout(() => { location.href = "index.html"; }, 1000);
     } catch (error) {
       messageEl.textContent = error.code;
     }
@@ -113,6 +115,8 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       messageEl.textContent = `로그인됨: ${result.user.email}`;
       emailEl.value = "";
       passwordEl.value = "";
+
+      setTimeout(() => { location.href = "index.html"; }, 1000);
     } catch (error) {
       messageEl.textContent = error.code;
     }

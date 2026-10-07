@@ -86,3 +86,10 @@ window.authStateManager = {
     return auth;
   }
 };
+
+// 페이지 로드 시 자동으로 인증 상태 확인 및 헤더 업데이트
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, (user) => {
+    updateHeader(user);
+  });
+});

@@ -87,9 +87,16 @@ window.authStateManager = {
   }
 };
 
-// 페이지 로드 시 자동으로 인증 상태 확인 및 헤더 업데이트
-document.addEventListener("DOMContentLoaded", () => {
+// 인증 상태 변경 시 헤더 업데이트 (DOM 로드 후)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    onAuthStateChanged(auth, (user) => {
+      updateHeader(user);
+    });
+  });
+} else {
+  // 이미 DOM이 로드된 경우 (로그인 후 이동)
   onAuthStateChanged(auth, (user) => {
     updateHeader(user);
   });
-});
+}

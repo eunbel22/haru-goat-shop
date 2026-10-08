@@ -44,6 +44,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <button id="resend-btn" style="width: 100%; padding: 12px; background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">인증 메일 다시 보내기</button>
       <p id="resend-msg" style="margin: 12px 0 0; color: var(--sub);"></p>
     </div>
+    <div id="google-link-box" style="margin-bottom: 20px;">
+      <button id="google-link-btn" style="width: 100%; padding: 12px; background: white; color: #1f1f1f; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Google 계정 연결하기</button>
+      <p id="google-linked" style="display: none; margin: 0; padding: 12px; background: var(--card); border-radius: 8px; color: var(--sub); text-align: center;">연결됨</p>
+      <p id="google-link-msg" style="margin: 12px 0 0; color: var(--sub);"></p>
+    </div>
     <button id="logout-btn" style="width: 100%; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">로그아웃</button>
   </div>
 </div></main>
@@ -52,7 +57,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/shop.js"></script>
 <script src="assets/app.js"></script>
 <script type="module">
-  import { signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+  import { signOut, sendEmailVerification, GoogleAuthProvider, linkWithPopup } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
   const auth = window.authStateManager.getCurrentAuth();
   const loadingEl = document.getElementById("loading");
@@ -76,6 +81,30 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
   });
 
+  const googleLinkBtnEl = document.getElementById("google-link-btn");
+  const googleLinkedEl = document.getElementById("google-linked");
+  const googleLinkMsgEl = document.getElementById("google-link-msg");
+
+  function showGoogleLinkState(user) {
+    const linked = user.providerData.some((p) => p.providerId === "google.com");
+    googleLinkBtnEl.style.display = linked ? "none" : "block";
+    googleLinkedEl.style.display = linked ? "block" : "none";
+  }
+
+  googleLinkBtnEl.addEventListener("click", async () => {
+    googleLinkMsgEl.textContent = "";
+    googleLinkBtnEl.disabled = true;
+    try {
+      await linkWithPopup(auth.currentUser, new GoogleAuthProvider());
+      googleLinkMsgEl.textContent = "Google 계정을 연결했어요.";
+      showGoogleLinkState(auth.currentUser);
+    } catch (error) {
+      googleLinkMsgEl.textContent = error.code;
+    } finally {
+      googleLinkBtnEl.disabled = false;
+    }
+  });
+
   // 모든 화면의 헤더 업데이트
   window.authStateManager.onAuthStateChanged(async (user) => {
     if (user) {
@@ -85,6 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       contentEl.style.display = "block";
       emailDisplayEl.textContent = "계정: " + user.email;
       verifyBoxEl.style.display = user.emailVerified ? "none" : "block";
+      showGoogleLinkState(user);
 
       logoutBtnEl.addEventListener("click", async () => {
         await signOut(auth);

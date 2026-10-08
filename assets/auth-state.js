@@ -58,6 +58,19 @@ function updateHeader(user) {
       location.href = "index.html";
     });
 
+    if (user.photoURL) {
+      const photo = document.createElement("img");
+      photo.src = user.photoURL;
+      photo.alt = "";
+      photo.referrerPolicy = "no-referrer";
+      photo.style.width = "24px";
+      photo.style.height = "24px";
+      photo.style.borderRadius = "50%";
+      photo.style.objectFit = "cover";
+      photo.addEventListener("error", () => photo.remove());
+      authSection.appendChild(photo);
+    }
+
     authSection.appendChild(emailSpan);
     authSection.appendChild(mypageLink);
     authSection.appendChild(logoutBtn);

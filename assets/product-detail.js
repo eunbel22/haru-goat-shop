@@ -50,9 +50,9 @@ function detailPainted() {
     if (typeof d.stock === "number") {
       const stock = document.createElement("div");
       stock.id = "stock-line";
-      stock.style.cssText = "font-size: 14px; color: var(--sub);";
+      stock.style.cssText = "font-size: 14px; color: var(--sub); margin: 0 0 16px;";
       stock.textContent = d.stock > 0 ? `재고 ${d.stock}개` : "품절";
-      price.after(stock);
+      right.querySelector(".body").after(stock);
     }
   }
 

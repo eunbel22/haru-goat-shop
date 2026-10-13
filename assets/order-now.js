@@ -8,6 +8,11 @@ const db = getFirestore(app);
 
 class UserMessage extends Error {}
 
+function showStock(count) {
+  const line = document.getElementById("stock-line");
+  if (line) line.textContent = count > 0 ? `재고 ${count}개` : "품절";
+}
+
 document.addEventListener("click", async (e) => {
   const btn = e.target.closest("#order-now");
   if (!btn) return;
@@ -25,11 +30,14 @@ document.addEventListener("click", async (e) => {
     const productRef = doc(db, "products", productId);
     const orderRef = doc(collection(db, "orders"));
 
-    await runTransaction(db, async (tx) => {
+    const remaining = await runTransaction(db, async (tx) => {
       const snap = await tx.get(productRef);
       if (!snap.exists()) throw new Error(`products/${productId} 문서를 찾을 수 없습니다`);
       const product = snap.data();
-      if (!(product.stock >= 1)) throw new UserMessage("재고가 없습니다");
+      if (!(product.stock >= 1)) {
+        showStock(0);
+        throw new UserMessage("재고가 없습니다");
+      }
 
       tx.set(orderRef, {
         userId: user.uid,
@@ -39,8 +47,10 @@ document.addEventListener("click", async (e) => {
         createdAt: serverTimestamp()
       });
       tx.update(productRef, { stock: product.stock - 1 });
+      return product.stock - 1;
     });
 
+    showStock(remaining);
     msgEl.textContent = `주문했어요. 주문 번호: ${orderRef.id}`;
   } catch (error) {
     msgEl.textContent = error instanceof UserMessage

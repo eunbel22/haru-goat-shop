@@ -2,7 +2,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, collection, query, where, orderBy, limit, startAfter, getDocs, doc, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
-const PAGE_SIZE = 2;
+const PAGE_SIZE = 3;
 const app = getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);

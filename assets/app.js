@@ -86,10 +86,8 @@ function paintList() {
   document.querySelector("#hero-title").textContent = SHOP.name;
   document.querySelector("#hero-tagline").textContent = SHOP.tagline;
 
-  const PAGE_SIZE = 2;
+  const PAGE_SIZE = 3;
   const source = window.productSource;
-  const byPrice = [...PRODUCTS].sort((a, b) => a.price - b.price);
-  let useFirestore = !!source;
   let cursor = null;
   let reads = 0;
   let shown = 0;
@@ -120,34 +118,26 @@ function paintList() {
     </a>`;
 
   async function fetchNext() {
-    if (useFirestore) {
-      try {
-        const page = await Promise.race([
-          source.loadPage(cursor),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000))
-        ]);
-        if (shown === 0 && page.items.length === 0) throw new Error("empty");
-        cursor = page.cursor;
-        reads += page.reads;
-        countEl.textContent = `이번 화면에서 읽은 문서 ${reads}장`;
-        countEl.hidden = false;
-        return {
-          items: page.items.map(i => ({ ...i, emoji: (findProduct(i.id) || {}).emoji || "🛍️" })),
-          last: page.items.length < PAGE_SIZE
-        };
-      } catch (e) {
-        useFirestore = false;
-        if (shown > 0) return { items: [], last: true };
-        errEl.textContent = e.message === "empty"
-          ? "Firestore 의 products 에서 보이는 상품을 찾지 못해 기본 목록을 보여 드려요."
-          : `${e.code ? e.code + ": " : ""}${e.message}`;
-        errEl.hidden = false;
-        countEl.textContent = `이번 화면에서 읽은 문서 ${reads}장`;
-        countEl.hidden = false;
-      }
+    try {
+      if (!source) throw new Error("window.productSource 가 없습니다 (assets/products-firestore.js 를 불러오지 못했습니다)");
+      const page = await Promise.race([
+        source.loadPage(cursor),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("5초 안에 Firestore 응답이 오지 않았습니다")), 5000))
+      ]);
+      cursor = page.cursor;
+      reads += page.reads;
+      countEl.textContent = `이번 화면에서 읽은 문서 ${reads}장`;
+      countEl.hidden = false;
+      return {
+        items: page.items.map(i => ({ ...i, emoji: (findProduct(i.id) || {}).emoji || "🛍️" })),
+        last: page.items.length < PAGE_SIZE
+      };
+    } catch (e) {
+      console.error(`${e.code ? e.code + ": " : ""}${e.message}`);
+      errEl.textContent = "목록을 불러오지 못했습니다";
+      errEl.hidden = false;
+      return { items: [], last: true };
     }
-    const next = byPrice.slice(shown, shown + PAGE_SIZE);
-    return { items: next, last: shown + next.length >= byPrice.length };
   }
 
   async function showMore() {

@@ -168,6 +168,8 @@ function paintDetail() {
       <div class="price">${won(p.price)}</div>
       <div class="body prose">${p.detail.map(t => `<p>${t}</p>`).join("")}</div>
       <button class="btn" id="add-to-cart">장바구니에 담기</button>
+      <button class="btn ghost" id="order-now">바로 주문</button>
+      <p id="order-msg" style="margin: 14px 0 0; color: var(--sub);"></p>
     </div>`;
 
   window.dataLayer = window.dataLayer || [];

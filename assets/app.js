@@ -86,13 +86,70 @@ function paintList() {
   document.querySelector("#hero-title").textContent = SHOP.name;
   document.querySelector("#hero-tagline").textContent = SHOP.tagline;
 
-  box.innerHTML = PRODUCTS.map(p => `
+  const PAGE_SIZE = 3;
+  const source = window.productSource;
+  const byPrice = [...PRODUCTS].sort((a, b) => a.price - b.price);
+  let useFirestore = !!source;
+  let cursor = null;
+  let reads = 0;
+  let shown = 0;
+
+  const more = document.createElement("button");
+  more.className = "btn";
+  more.textContent = "더 보기";
+  more.style.marginTop = "24px";
+  box.after(more);
+
+  const countEl = document.createElement("p");
+  countEl.style.cssText = "color: var(--sub); font-size: 13px; margin: 16px 0 0;";
+  countEl.hidden = true;
+  box.after(countEl);
+
+  const card = p => `
     <a class="card" href="product.html?id=${p.id}">
       <div class="thumb">${p.emoji}</div>
       <h3>${p.name}</h3>
       <p class="sum">${p.summary}</p>
       <div class="price">${won(p.price)}</div>
-    </a>`).join("");
+    </a>`;
+
+  async function fetchNext() {
+    if (useFirestore) {
+      try {
+        const page = await Promise.race([
+          source.loadPage(cursor),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000))
+        ]);
+        if (shown === 0 && page.items.length === 0) throw new Error("empty");
+        cursor = page.cursor;
+        reads += page.reads;
+        countEl.textContent = `이번 화면에서 읽은 문서: ${reads}개`;
+        countEl.hidden = false;
+        return {
+          items: page.items.map(i => ({ ...i, emoji: (findProduct(i.id) || {}).emoji || "🛍️" })),
+          last: page.items.length < PAGE_SIZE
+        };
+      } catch (e) {
+        useFirestore = false;
+        countEl.hidden = true;
+        if (shown > 0) return { items: [], last: true };
+      }
+    }
+    const next = byPrice.slice(shown, shown + PAGE_SIZE);
+    return { items: next, last: shown + next.length >= byPrice.length };
+  }
+
+  async function showMore() {
+    more.disabled = true;
+    const { items, last } = await fetchNext();
+    box.insertAdjacentHTML("beforeend", items.map(card).join(""));
+    shown += items.length;
+    more.disabled = false;
+    if (last || items.length === 0) more.style.display = "none";
+  }
+
+  more.addEventListener("click", showMore);
+  showMore();
 }
 
 /* --- 상품 상세 --- */

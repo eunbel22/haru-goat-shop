@@ -86,7 +86,7 @@ function paintList() {
   document.querySelector("#hero-title").textContent = SHOP.name;
   document.querySelector("#hero-tagline").textContent = SHOP.tagline;
 
-  const PAGE_SIZE = 3;
+  const PAGE_SIZE = 2;
   const source = window.productSource;
   const byPrice = [...PRODUCTS].sort((a, b) => a.price - b.price);
   let useFirestore = !!source;
@@ -105,12 +105,18 @@ function paintList() {
   countEl.hidden = true;
   box.after(countEl);
 
+  const errEl = document.createElement("p");
+  errEl.style.cssText = "color: var(--sub); font-size: 13px; margin: 8px 0 0;";
+  errEl.hidden = true;
+  countEl.after(errEl);
+
   const card = p => `
     <a class="card" href="product.html?id=${p.id}">
       <div class="thumb">${p.emoji}</div>
       <h3>${p.name}</h3>
       <p class="sum">${p.summary}</p>
-      <div class="price">${won(p.price)}</div>
+      <div class="price">${won(p.price)}</div>${typeof p.stock === "number" ? `
+      <div class="stock" style="font-size: 13px; color: var(--sub);">${p.stock > 0 ? `재고 ${p.stock}개` : "품절"}</div>` : ""}
     </a>`;
 
   async function fetchNext() {
@@ -123,7 +129,7 @@ function paintList() {
         if (shown === 0 && page.items.length === 0) throw new Error("empty");
         cursor = page.cursor;
         reads += page.reads;
-        countEl.textContent = `이번 화면에서 읽은 문서: ${reads}개`;
+        countEl.textContent = `이번 화면에서 읽은 문서 ${reads}장`;
         countEl.hidden = false;
         return {
           items: page.items.map(i => ({ ...i, emoji: (findProduct(i.id) || {}).emoji || "🛍️" })),
@@ -131,8 +137,13 @@ function paintList() {
         };
       } catch (e) {
         useFirestore = false;
-        countEl.hidden = true;
         if (shown > 0) return { items: [], last: true };
+        errEl.textContent = e.message === "empty"
+          ? "Firestore 의 products 에서 보이는 상품을 찾지 못해 기본 목록을 보여 드려요."
+          : `${e.code ? e.code + ": " : ""}${e.message}`;
+        errEl.hidden = false;
+        countEl.textContent = `이번 화면에서 읽은 문서 ${reads}장`;
+        countEl.hidden = false;
       }
     }
     const next = byPrice.slice(shown, shown + PAGE_SIZE);

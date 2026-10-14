@@ -116,6 +116,35 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   let ordersUnsub = null;
   let ordersStopped = false;
 
+  const STATUS_TEXT = {
+    paid: "결제 완료",
+    preparing: "상품 준비 중",
+    shipped: "배송 중",
+    delivered: "배송 완료",
+    canceled: "주문 취소"
+  };
+  const STEP_OF = { paid: 1, preparing: 2, shipped: 3, delivered: 4 };
+  const STEP_NAMES = ["결제 완료", "상품 준비 중", "배송 중", "배송 완료"];
+  const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+  function stepLine(current) {
+    const line = document.createElement("div");
+    line.style.cssText = "display: flex; gap: 4px; margin-top: 12px; text-align: center;";
+    STEP_NAMES.forEach((name, i) => {
+      const n = i + 1;
+      const step = document.createElement("div");
+      step.style.cssText = `flex: 1; padding-top: 6px; font-size: 11px; color: var(--sub); border-top: 4px solid ${n <= current ? "var(--accent)" : "var(--line)"};`;
+      if (n === current) {
+        step.setAttribute("aria-current", "step");
+        step.style.color = "var(--accent)";
+        step.style.fontWeight = "700";
+      }
+      step.textContent = name;
+      line.append(step);
+    });
+    return line;
+  }
+
   function renderOrders(docs) {
     ordersEl.textContent = "";
     if (!docs.length) {
@@ -138,13 +167,14 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         ["주문한 날", when],
         ["상품", names],
         ["합계", `${Number(o.totalPrice).toLocaleString("ko-KR")}원`],
-        ["status", o.status]
+        ["상태", has(STATUS_TEXT, o.status) ? STATUS_TEXT[o.status] : "확인 중"]
       ];
       rows.forEach(([label, value]) => {
         const row = document.createElement("div");
         row.textContent = `${label}: ${value}`;
         card.append(row);
       });
+      if (has(STEP_OF, o.status)) card.append(stepLine(STEP_OF[o.status]));
       ordersEl.append(card);
     });
   }

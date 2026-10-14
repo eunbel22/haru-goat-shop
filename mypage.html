@@ -63,7 +63,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/app.js"></script>
 <script type="module">
   import { signOut, sendEmailVerification, GoogleAuthProvider, linkWithPopup } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-  import { getFirestore, collection, query, where, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+  import { getFirestore, collection, query, where, onSnapshot, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
   const auth = window.authStateManager.getCurrentAuth();
   const loadingEl = document.getElementById("loading");
@@ -145,7 +145,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     return line;
   }
 
+  let lastDocs = [];
+  const savingIds = new Set();
+  const failedIds = new Set();
+
   function renderOrders(docs) {
+    lastDocs = docs;
     ordersEl.textContent = "";
     if (!docs.length) {
       const empty = document.createElement("p");
@@ -175,8 +180,61 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         card.append(row);
       });
       if (has(STEP_OF, o.status)) card.append(stepLine(STEP_OF[o.status]));
+      if (o.status === "paid") {
+        const saving = savingIds.has(o.id);
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "cancel-order";
+        cancelBtn.textContent = saving ? "저장 중" : "주문 취소";
+        cancelBtn.disabled = saving;
+        cancelBtn.style.cssText = "margin-top: 12px; padding: 8px 14px; background: var(--line); color: var(--ink); border: none; border-radius: 6px; cursor: pointer; font: inherit; font-size: 13px;";
+        if (saving) cancelBtn.style.opacity = "0.6";
+        cancelBtn.addEventListener("click", () => cancelOrder(o.id));
+        card.append(cancelBtn);
+        if (failedIds.has(o.id)) {
+          const failed = document.createElement("div");
+          failed.className = "cancel-failed";
+          failed.style.cssText = "margin-top: 8px; font-size: 13px; color: var(--sub);";
+          failed.textContent = "주문이 취소되지 않았어요. 이 주문은 지금 취소 전 상태 그대로예요. 주문 취소를 한 번 더 눌러 주세요.";
+          card.append(failed);
+        }
+      }
       ordersEl.append(card);
     });
+  }
+
+  async function cancelOrder(orderId) {
+    if (savingIds.has(orderId)) return;
+    savingIds.add(orderId);
+    failedIds.delete(orderId);
+    renderOrders(lastDocs);
+    try {
+      await updateDoc(doc(db, "orders", orderId), { status: "canceled" });
+    } catch (error) {
+      console.error(`${error.code ? error.code + ": " : ""}${error.message}`);
+      failedIds.add(orderId);
+    }
+    savingIds.delete(orderId);
+    if (!failedIds.has(orderId) && !ordersUnsub) {
+      document.getElementById("orders-refresh").click();
+    } else {
+      renderOrders(lastDocs);
+    }
+  }
+
+  let toastEl = null;
+  let toastTimer = null;
+
+  function showStatusToast() {
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.id = "order-toast";
+      toastEl.style.cssText = "position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 20; padding: 10px 18px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);";
+      toastEl.textContent = "주문 상태가 바뀌었습니다";
+      document.body.append(toastEl);
+    }
+    toastEl.style.display = "block";
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toastEl.style.display = "none"; }, 4000);
   }
 
   function startOrdersListener(user) {
@@ -185,6 +243,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     ordersUnsub = onSnapshot(q, (snap) => {
       console.log(`[주문 알림] 주문 ${snap.size}건 (바뀐 문서 ${snap.docChanges().length}건)`);
       renderOrders(snap.docs);
+      if (snap.docChanges().some((change) => change.type === "modified")) showStatusToast();
 
       const allFinished = snap.docs.length > 0
         && snap.docs.every((s) => s.data().status === "delivered" || s.data().status === "canceled");

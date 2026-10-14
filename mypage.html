@@ -49,6 +49,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <p id="google-linked" style="display: none; margin: 0; padding: 12px; background: var(--card); border-radius: 8px; color: var(--sub); text-align: center;">연결됨</p>
       <p id="google-link-msg" style="margin: 12px 0 0; color: var(--sub);"></p>
     </div>
+    <div id="orders-box" style="margin-bottom: 20px;">
+      <h3 style="margin: 0 0 12px;">내 주문</h3>
+      <div id="my-orders"></div>
+    </div>
     <button id="logout-btn" style="width: 100%; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">로그아웃</button>
   </div>
 </div></main>
@@ -58,6 +62,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="assets/app.js"></script>
 <script type="module">
   import { signOut, sendEmailVerification, GoogleAuthProvider, linkWithPopup } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+  import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
   const auth = window.authStateManager.getCurrentAuth();
   const loadingEl = document.getElementById("loading");
@@ -105,6 +110,55 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     }
   });
 
+  const db = getFirestore(auth.app);
+  const ordersEl = document.getElementById("my-orders");
+  let ordersUnsub = null;
+
+  function renderOrders(docs) {
+    ordersEl.textContent = "";
+    if (!docs.length) {
+      const empty = document.createElement("p");
+      empty.style.cssText = "margin: 0; color: var(--sub);";
+      empty.textContent = "아직 주문이 없습니다";
+      ordersEl.append(empty);
+      return;
+    }
+    const millis = (o) => (o.createdAt && o.createdAt.toMillis ? o.createdAt.toMillis() : Number.MAX_SAFE_INTEGER);
+    const orders = docs.map((s) => ({ id: s.id, ...s.data() })).sort((a, b) => millis(b) - millis(a));
+    orders.forEach((o) => {
+      const card = document.createElement("div");
+      card.style.cssText = "padding: 14px; background: var(--card); border-radius: 8px; margin-bottom: 10px; font-size: 14px;";
+      const when = o.createdAt && o.createdAt.toDate
+        ? o.createdAt.toDate().toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" })
+        : "처리 중";
+      const names = (o.items || []).map((i) => i.name).join(", ");
+      const rows = [
+        ["주문한 날", when],
+        ["상품", names],
+        ["합계", `${Number(o.totalPrice).toLocaleString("ko-KR")}원`],
+        ["status", o.status]
+      ];
+      rows.forEach(([label, value]) => {
+        const row = document.createElement("div");
+        row.textContent = `${label}: ${value}`;
+        card.append(row);
+      });
+      ordersEl.append(card);
+    });
+  }
+
+  function startOrdersListener(user) {
+    if (ordersUnsub) return;
+    const q = query(collection(db, "orders"), where("userId", "==", user.uid));
+    ordersUnsub = onSnapshot(q, (snap) => {
+      console.log(`[주문 알림] 주문 ${snap.size}건 (바뀐 문서 ${snap.docChanges().length}건)`);
+      renderOrders(snap.docs);
+    }, (error) => {
+      console.error(`${error.code ? error.code + ": " : ""}${error.message}`);
+      ordersEl.textContent = "내 주문을 불러오지 못했습니다";
+    });
+  }
+
   // 모든 화면의 헤더 업데이트
   window.authStateManager.onAuthStateChanged(async (user) => {
     if (user) {
@@ -115,12 +169,17 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       emailDisplayEl.textContent = "계정: " + user.email;
       verifyBoxEl.style.display = user.emailVerified ? "none" : "block";
       showGoogleLinkState(user);
+      startOrdersListener(user);
 
       logoutBtnEl.addEventListener("click", async () => {
         await signOut(auth);
         location.href = "index.html";
       });
     } else {
+      if (ordersUnsub) {
+        ordersUnsub();
+        ordersUnsub = null;
+      }
       // 로그인 안 됨: login.html로 리다이렉트
       location.href = "login.html?redirect=" + encodeURIComponent(location.href);
     }

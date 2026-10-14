@@ -52,6 +52,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <div id="orders-box" style="margin-bottom: 20px;">
       <h3 style="margin: 0 0 12px;">내 주문</h3>
       <div id="my-orders"></div>
+      <p id="orders-stopped" style="display: none; margin: 4px 0 0; font-size: 13px; color: var(--sub);">모든 주문이 끝나 실시간 확인을 멈췄습니다. 새로 고치면 다시 확인합니다.</p>
     </div>
     <button id="logout-btn" style="width: 100%; padding: 12px; background: var(--line); color: var(--ink); border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">로그아웃</button>
   </div>
@@ -113,6 +114,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   const db = getFirestore(auth.app);
   const ordersEl = document.getElementById("my-orders");
   let ordersUnsub = null;
+  let ordersStopped = false;
 
   function renderOrders(docs) {
     ordersEl.textContent = "";
@@ -148,11 +150,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   }
 
   function startOrdersListener(user) {
-    if (ordersUnsub) return;
+    if (ordersUnsub || ordersStopped) return;
     const q = query(collection(db, "orders"), where("userId", "==", user.uid));
     ordersUnsub = onSnapshot(q, (snap) => {
       console.log(`[주문 알림] 주문 ${snap.size}건 (바뀐 문서 ${snap.docChanges().length}건)`);
       renderOrders(snap.docs);
+
+      const allFinished = snap.docs.length > 0
+        && snap.docs.every((s) => s.data().status === "delivered" || s.data().status === "canceled");
+      if (allFinished) {
+        ordersUnsub();
+        ordersUnsub = null;
+        ordersStopped = true;
+        document.getElementById("orders-stopped").style.display = "block";
+        console.log(`[그만 듣기] 주문 ${snap.docs.length}건이 모두 delivered 또는 canceled 라서 리스너를 해제했습니다`);
+      }
     }, (error) => {
       console.error(`${error.code ? error.code + ": " : ""}${error.message}`);
       ordersEl.textContent = "내 주문을 불러오지 못했습니다";

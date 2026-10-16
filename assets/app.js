@@ -110,7 +110,7 @@ function paintList() {
 
   const card = p => `
     <a class="card" href="product.html?id=${p.id}">
-      <div class="thumb">${p.emoji}</div>
+      <div class="thumb">${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" style="display: block; width: 100%; height: 140px; object-fit: cover; border-radius: 8px;">` : p.emoji}</div>
       <h3>${p.name}</h3>
       <p class="sum">${p.summary}</p>
       <div class="price">${won(p.price)}</div>${typeof p.stock === "number" ? `

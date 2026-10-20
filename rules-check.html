@@ -7,6 +7,12 @@
 <meta name="description" content="보안 규칙이 무엇을 허용하는지 확인합니다">
 <meta name="robots" content="noindex">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  .check-item { margin: 0 0 24px; }
+  .check-result { margin: 12px 0 0; font-size: 14px; white-space: pre-wrap; word-break: break-all; }
+  .check-result.ok { color: #2e7d32; }
+  .check-result.denied { color: #b3402a; }
+</style>
 
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -36,20 +42,28 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 </div></header>
 
 <main><div class="wrap">
-  <h2>규칙 확인</h2>
+  <h2>규칙 확인 화면</h2>
   <p id="gate" class="lead">확인 중…</p>
 
   <div id="check-box" hidden>
-    <p id="who" style="margin: 0 0 24px; color: var(--sub); word-break: break-all;"></p>
+    <p style="margin: 0 0 6px; word-break: break-all;">이메일: <span id="who-email"></span></p>
+    <p style="margin: 0 0 24px; word-break: break-all;">UID: <span id="who-uid"></span></p>
 
-    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
-      <button class="btn ghost" id="read-orders">주문 전체 읽기</button>
-      <button class="btn ghost" id="edit-my-order">내 주문 금액 고치기</button>
-      <button class="btn ghost" id="zero-price">상품 가격 0원으로</button>
+    <div class="check-item">
+      <button class="btn" id="read-orders">주문 전체 읽기</button>
+      <p class="check-result" id="result-read"></p>
+      <div id="table-box" style="overflow-x: auto;"></div>
     </div>
 
-    <p id="result" style="margin: 0 0 12px; color: var(--sub); white-space: pre-wrap; word-break: break-all;"></p>
-    <div id="table-box" style="overflow-x: auto;"></div>
+    <div class="check-item">
+      <button class="btn" id="edit-my-order">내 주문 금액 고치기</button>
+      <p class="check-result" id="result-edit"></p>
+    </div>
+
+    <div class="check-item">
+      <button class="btn" id="zero-price">상품 가격 0원으로</button>
+      <p class="check-result" id="result-zero"></p>
+    </div>
   </div>
 </div></main>
 

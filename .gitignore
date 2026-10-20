@@ -1,1 +1,5 @@
 .claude/
+설계서.md
+schema-erd.png
+node_modules/
+*-debug.log

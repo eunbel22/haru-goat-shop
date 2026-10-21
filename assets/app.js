@@ -253,23 +253,9 @@ function paintCheckout() {
 
     // ▼ 여기에 「결제를 마쳤다」를 알리는 코드가 들어갑니다 (뒤 수업에서)
 
-    window.dataLayer = window.dataLayer || [];
-    dataLayer.push({ ecommerce: null });
-    dataLayer.push({
-      event: "purchase",
-      ecommerce: {
-        transaction_id: crypto.randomUUID(),
-        currency: "KRW",
-        value: Cart.total(),
-        items: Cart.read().map(i => {
-          const p = findProduct(i.id);
-          return { item_id: p.id, item_name: p.name, price: p.price, quantity: i.qty };
-        })
-      }
-    });
+    // purchase 는 주문 완료 화면(assets/order-done.js)이 결제 성공일 때 한 번 보낸다
 
-    // 포트원 결제창(테스트) - 돌려받은 결과는 꾸미지 않고 그대로 보여 준다
-    // 주문 문서 만들기 · 장바구니 비우기 · 주문 완료 화면 이동은 아직 하지 않는다
+    // 포트원 결제창(테스트) - 결과는 주문 완료 화면 한 곳에서만 받는다
     const cartItems = Cart.read();
     if (cartItems.length === 0) return;
     const firstName = findProduct(cartItems[0].id).name;
@@ -293,9 +279,18 @@ function paintCheckout() {
         orderName,
         totalAmount: Cart.total(),
         currency: "CURRENCY_KRW",
-        payMethod: "CARD"
+        payMethod: "CARD",
+        customData: { items: cartItems.map(i => ({ id: i.id, qty: i.qty })) },
+        redirectUrl: new URL("done.html", location.href).href
       });
-      result.textContent += `\n${JSON.stringify(response)}`;
+      // PC 는 결제창이 결과를 돌려준다 - 휴대폰이 주소 뒤에 붙여 오는 것과 같은 모양(paymentId · code · message)으로 넘긴다
+      if (response) {
+        const query = new URLSearchParams();
+        query.set("paymentId", response.paymentId || paymentId);
+        if (response.code != null) query.set("code", response.code);
+        if (response.message != null) query.set("message", response.message);
+        location.href = `done.html?${query}`;
+      }
     } catch (error) {
       result.textContent += `\n${error}`;
     }

@@ -248,7 +248,7 @@ function paintCheckout() {
     free_shipping: Cart.total() >= 50000 ? "yes" : "no"
   });
 
-  form.addEventListener("submit", e => {
+  form.addEventListener("submit", async e => {
     e.preventDefault();
 
     // ▼ 여기에 「결제를 마쳤다」를 알리는 코드가 들어갑니다 (뒤 수업에서)
@@ -268,8 +268,37 @@ function paintCheckout() {
       }
     });
 
-    Cart.clear();
-    location.href = "done.html";
+    // 포트원 결제창(테스트) - 돌려받은 결과는 꾸미지 않고 그대로 보여 준다
+    // 주문 문서 만들기 · 장바구니 비우기 · 주문 완료 화면 이동은 아직 하지 않는다
+    const cartItems = Cart.read();
+    if (cartItems.length === 0) return;
+    const firstName = findProduct(cartItems[0].id).name;
+    const orderName = cartItems.length > 1 ? `${firstName} 외 ${cartItems.length - 1}건` : firstName;
+    const paymentId = `HARU-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+
+    let result = document.querySelector("#pay-result");
+    if (!result) {
+      result = document.createElement("p");
+      result.id = "pay-result";
+      result.style.cssText = "margin: 16px 0 0; color: var(--sub); white-space: pre-wrap; word-break: break-all;";
+      form.after(result);
+    }
+    result.textContent = `paymentId: ${paymentId}`;
+
+    try {
+      const response = await PortOne.requestPayment({
+        storeId: "store-a9d0c42d-2b1e-4f48-af8e-4aab8d1299d6",
+        channelKey: "channel-key-52baec72-61e4-42bb-975a-f3d6e73e6639",
+        paymentId,
+        orderName,
+        totalAmount: Cart.total(),
+        currency: "CURRENCY_KRW",
+        payMethod: "CARD"
+      });
+      result.textContent += `\n${JSON.stringify(response)}`;
+    } catch (error) {
+      result.textContent += `\n${error}`;
+    }
   });
 }
 

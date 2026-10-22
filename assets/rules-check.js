@@ -1,10 +1,16 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, collection, query, where, limit, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-functions.js";
 
 const app = getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app, "us-central1");
+// 내 컴퓨터(localhost)에서 열었을 때만 에뮬레이터 함수를 부른다
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+}
 
 const gate = document.getElementById("gate");
 const box = document.getElementById("check-box");
@@ -85,5 +91,21 @@ if (!auth.currentUser) {
   document.getElementById("zero-price").addEventListener("click", () => run(zeroResult, async () => {
     await updateDoc(doc(db, "products", "p1"), { price: 0 });
     show(zeroResult, "ok", "허용 · 성공: products/p1 의 price 를 0 으로 바꿨습니다");
+  }));
+
+  const askResult = document.getElementById("result-ask");
+  const sendResult = document.getElementById("result-send");
+  const calcOrderTotal = httpsCallable(functions, "calcOrderTotal");
+
+  // 서버에게 금액 묻기 - productId 와 quantity 만 보낸다
+  document.getElementById("ask-total").addEventListener("click", () => run(askResult, async () => {
+    const result = await calcOrderTotal({ productId: "p1", quantity: 2 });
+    show(askResult, "ok", `totalPrice: ${result.data.totalPrice}`);
+  }));
+
+  // 가격 바꿔 보내기 - 같은 요청에 price: 100 을 덧붙인다 (함수는 이 값을 쓰지 않는다)
+  document.getElementById("send-price").addEventListener("click", () => run(sendResult, async () => {
+    const result = await calcOrderTotal({ productId: "p1", quantity: 2, price: 100 });
+    show(sendResult, "ok", `totalPrice: ${result.data.totalPrice}`);
   }));
 }

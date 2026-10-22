@@ -108,4 +108,11 @@ if (!auth.currentUser) {
     const result = await calcOrderTotal({ productId: "p1", quantity: 2, price: 100 });
     show(sendResult, "ok", `totalPrice: ${result.data.totalPrice}`);
   }));
+
+  // 수량 0으로 묻기 - productId "p1", quantity 0 을 보낸다
+  const zeroQuantityResult = document.getElementById("result-zero-quantity");
+  document.getElementById("zero-quantity").addEventListener("click", () => run(zeroQuantityResult, async () => {
+    const result = await calcOrderTotal({ productId: "p1", quantity: 0 });
+    show(zeroQuantityResult, "ok", `totalPrice: ${result.data.totalPrice}`);
+  }));
 }

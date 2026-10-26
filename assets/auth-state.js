@@ -114,3 +114,11 @@ if (document.readyState === "loading") {
     updateHeader(user);
   });
 }
+
+// 웹 푸시 알림을 받을 서비스 워커 연결(등록)만 한다
+// 손님에게 알림 허락을 묻거나 알림 받을 주소(토큰)를 받는 일은 아직 하지 않는다
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/firebase-messaging-sw.js").catch((error) => {
+    console.error("알림 서비스 워커 등록 실패:", error);
+  });
+}

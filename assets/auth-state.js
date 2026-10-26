@@ -1,6 +1,7 @@
 // Firebase 인증 상태 관리 (모든 화면에서 공유)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { savePushToken } from "./push-token.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
@@ -116,9 +117,15 @@ if (document.readyState === "loading") {
 }
 
 // 웹 푸시 알림을 받을 서비스 워커 연결(등록)만 한다
-// 손님에게 알림 허락을 묻거나 알림 받을 주소(토큰)를 받는 일은 아직 하지 않는다
+// 손님에게 알림 허락을 묻는 일은 여기서 하지 않는다 (주문을 마친 뒤 카드의 「알림 받기」에서만)
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/firebase-messaging-sw.js").catch((error) => {
     console.error("알림 서비스 워커 등록 실패:", error);
   });
 }
+
+// 화면을 열 때마다 - 권한이 granted 이고 로그인한 손님이면 알림 받는 주소(토큰)를 확인한다
+// (적어 둔 token 이 같고 updatedAt 이 30일 안이면 다시 쓰지 않는다)
+onAuthStateChanged(auth, (user) => {
+  if (user) savePushToken();
+});

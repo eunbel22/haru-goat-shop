@@ -1,6 +1,8 @@
 // 주문을 마친 손님에게만 「알림을 받을지」 묻는 카드 - 주문 완료 화면과 「바로 주문」 성공 뒤에서만 부른다
 // 알림 받을 주소(토큰)는 받지 않는다. 브라우저 허락 창은 「알림 받기」 단추를 누른 처리 안에서만 띄운다.
 
+import { savePushToken } from "./push-token.js";
+
 const CARD_ID = "notify-card";
 const GRANTED_TEXT = "알림을 받고 있어요";
 const DENIED_TEXT = "브라우저 주소창 왼쪽 아이콘 → 알림에서 켤 수 있어요";
@@ -72,6 +74,8 @@ export function showNotifyCard(anchor) {
 
     if (result === "granted") {
       card.replaceWith(makeLine(GRANTED_TEXT));
+      // granted 가 된 바로 그 자리에서 알림 받는 주소(토큰)를 받아 적는다
+      savePushToken({ force: true });
     } else if (result === "denied") {
       card.replaceWith(makeLine(DENIED_TEXT));
     } else {

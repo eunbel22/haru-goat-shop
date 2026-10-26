@@ -1,6 +1,7 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, doc, collection, runTransaction, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { showNotifyCard } from "./notify-card.js";
 
 const app = getApp();
 const auth = getAuth(app);
@@ -52,6 +53,9 @@ document.addEventListener("click", async (e) => {
 
     showStock(remaining);
     msgEl.textContent = `주문했어요. 주문 번호: ${orderRef.id}`;
+
+    // 주문을 마친 손님에게만 알림을 받을지 묻는 카드를 「주문했어요」 바로 아래에 붙인다
+    showNotifyCard(msgEl);
   } catch (error) {
     msgEl.textContent = error instanceof UserMessage
       ? error.message

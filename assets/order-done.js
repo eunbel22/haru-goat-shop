@@ -1,6 +1,7 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { showNotifyCard } from "./notify-card.js";
 
 // 결제 결과는 이 화면 한 곳에서만 받는다 (PC · 휴대폰 모두 주소 뒤의 paymentId · code · message)
 const params = new URLSearchParams(location.search);
@@ -69,6 +70,9 @@ async function run() {
   if (badge) badge.textContent = "0";
   title.textContent = "주문이 접수되었습니다";
   status.textContent = `결제 ID: ${paymentId}`;
+
+  // 주문을 마친 손님에게만 알림을 받을지 묻는 카드를 붙인다
+  showNotifyCard(status);
 
   window.dataLayer = window.dataLayer || [];
   dataLayer.push({ ecommerce: null });

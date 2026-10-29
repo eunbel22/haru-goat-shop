@@ -2,6 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-functions.js";
+import { showProducts, hideProducts } from "./admin-products.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
@@ -24,6 +25,7 @@ const recheckBtn = document.getElementById("recheck");
 // 토큰을 읽어 role 로 판단한다 - refresh 가 true 면 서버에서 새로 받는다
 async function judge(user, refresh) {
   actionsEl.replaceChildren();
+  hideProducts();
   recheckBtn.hidden = !user;
   if (!user) {
     statusEl.textContent = "로그인이 필요합니다";
@@ -38,6 +40,7 @@ async function judge(user, refresh) {
   const role = result.claims.role;
   if (role === "staff" || role === "admin") {
     statusEl.textContent = "관리자: " + role;
+    showProducts();
     return;
   }
 

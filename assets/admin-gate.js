@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-functions.js";
 import { showProducts, hideProducts } from "./admin-products.js";
 import { showOrders, hideOrders } from "./admin-orders.js";
+import { showSales, hideSales } from "./admin-sales.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyADMQa2y2lWp3Fr4huFU5MZYOK6w94xCHs",
@@ -28,6 +29,7 @@ async function judge(user, refresh) {
   actionsEl.replaceChildren();
   hideProducts();
   hideOrders();
+  hideSales();
   recheckBtn.hidden = !user;
   if (!user) {
     statusEl.textContent = "로그인이 필요합니다";
@@ -44,6 +46,7 @@ async function judge(user, refresh) {
     statusEl.textContent = "관리자: " + role;
     showProducts();
     showOrders();
+    showSales();
     return;
   }
 

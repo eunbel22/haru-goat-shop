@@ -30,6 +30,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <div id="admin-tabs" hidden style="margin-top: 24px; gap: 8px;">
     <button id="tab-products" type="button" aria-pressed="true">상품</button>
     <button id="tab-orders" type="button" aria-pressed="false">주문</button>
+    <button id="tab-sales" type="button" aria-pressed="false" hidden>매출</button>
   </div>
   <div id="panel-products">
     <section id="product-admin" hidden style="margin-top: 24px;"></section>
@@ -46,9 +47,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <button id="orders-more" type="button" hidden>더 보기</button>
     <section id="order-detail" style="margin-top: 24px;"></section>
   </div>
+  <div id="panel-sales" hidden style="margin-top: 24px;">
+    <p id="sales-headline"></p>
+    <p id="sales-msg" style="color: #c0392b;"></p>
+    <div style="max-width: 720px;"><canvas id="sales-chart"></canvas></div>
+    <div id="sales-table" style="margin-top: 16px;"></div>
+  </div>
   <p style="margin-top: 24px;"><button id="recheck" type="button" hidden>다시 확인</button></p>
 </div></main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module" src="assets/admin-gate.js"></script>
 </body>
 </html>

@@ -1,12 +1,42 @@
 // 관리 화면 상품 표 - 입구가 직원(staff · admin)으로 판단했을 때만 그린다
 import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js";
 
 // 앱은 입구(admin-gate.js)가 만든 뒤에 받는다 - 파일을 불러오는 순간에는 아직 없다
 let db;
+let storage;
 const box = document.getElementById("product-admin");
 
 let rows = [];
+let newNotice = "";
+
+const MAX_BYTES = 5 * 1024 * 1024;
+
+// 올리기 전에 막는다 - 기다리지 않게 알려 줄 뿐이고, 진짜로 막는 것은 Storage 규칙이다
+function checkFile(file) {
+  if (!file.type.startsWith("image/")) return "이미지 파일만 올릴 수 있습니다";
+  if (file.size >= MAX_BYTES) return "5MB 넘는 사진은 올릴 수 없습니다";
+  return "";
+}
+
+// 사진을 products/문서 ID/main.jpg 에 올린다 - 다 올라가면 경로 글자를 돌려준다
+function uploadPhoto(docId, file, statusEl) {
+  const path = `products/${docId}/main.jpg`;
+  statusEl.textContent = "올리는 중 … 0%";
+  return new Promise((resolve, reject) => {
+    const task = uploadBytesResumable(ref(storage, path), file);
+    task.on(
+      "state_changed",
+      (snapshot) => {
+        const percent = Math.floor((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        statusEl.textContent = `올리는 중 … ${percent}%`;
+      },
+      reject,
+      () => resolve(path)
+    );
+  });
+}
 
 function errText(err) {
   return (err.code ? err.code + ": " : "") + err.message;
@@ -50,25 +80,49 @@ function render(errorId, errorMessage) {
   const priceIn = el("input", undefined, { placeholder: "price", inputMode: "numeric" });
   const summaryIn = el("input", undefined, { placeholder: "summary" });
   const stockIn = el("input", undefined, { placeholder: "stock", inputMode: "numeric" });
+  const fileIn = el("input", undefined, { type: "file", accept: "image/*" });
+  const newStatus = el("p");
   const newSave = el("button", "저장", { type: "submit" });
   const newErr = el("p");
   newErr.style.cssText = "color:#c0392b;white-space:pre-wrap;";
-  newForm.append(nameIn, priceIn, summaryIn, stockIn, newSave, newErr);
+  newErr.textContent = newNotice;
+  newForm.append(nameIn, priceIn, summaryIn, stockIn, fileIn, newSave, newStatus, newErr);
+  newForm.hidden = !newNotice;
   newBtn.addEventListener("click", () => { newForm.hidden = !newForm.hidden; });
   newForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     newErr.textContent = "";
+    newNotice = "";
     const price = parseWhole(priceIn.value, 1);
     const stock = parseWhole(stockIn.value, 0);
     if (!nameIn.value.trim() || price === null || stock === null) {
       newErr.textContent = "name 을 적고, price 는 1 이상, stock 은 0 이상의 정수로 적어 주세요";
       return;
     }
+    const file = fileIn.files[0];
+    const fileProblem = file ? checkFile(file) : "";
+    if (fileProblem) {
+      newErr.textContent = fileProblem;
+      return;
+    }
     newSave.disabled = true;
     try {
+      // 1) 문서를 숨긴 채로 만든다
       const data = { name: nameIn.value.trim(), price, summary: summaryIn.value, stock, isVisible: false, createdAt: serverTimestamp() };
       const created = await addDoc(collection(db, "products"), data);
-      rows.push({ id: created.id, data: { ...data, createdAt: null } });
+      const row = { id: created.id, data: { ...data, createdAt: null } };
+      rows.push(row);
+      if (file) {
+        try {
+          // 2) 사진을 올리고 3) 다 올라간 뒤에 경로를 적는다
+          const path = await uploadPhoto(created.id, file, newStatus);
+          await updateDoc(doc(db, "products", created.id), { imagePath: path });
+          row.data.imagePath = path;
+        } catch (err) {
+          newNotice = `상품 문서(${created.id})는 만들었지만 사진은 올리지 못했습니다
+${errText(err)}`;
+        }
+      }
       render();
     } catch (err) {
       newErr.textContent = errText(err);
@@ -81,7 +135,7 @@ function render(errorId, errorMessage) {
   const table = el("table");
   table.style.cssText = "width:100%;margin-top:16px;border-collapse:collapse;";
   const head = el("tr");
-  ["ID", "name", "price", "stock", "품절", "노출", ""].forEach((t) => head.append(el("th", t)));
+  ["ID", "사진", "name", "price", "stock", "품절", "노출", ""].forEach((t) => head.append(el("th", t)));
   table.append(head);
 
   rows.forEach((row) => {
@@ -108,7 +162,16 @@ function render(errorId, errorMessage) {
 
     const last = el("td");
     last.append(editBtn, rowErr);
-    [row.id, d.name, d.price, d.stock].forEach((v) => tr.append(el("td", String(v ?? ""))));
+    tr.append(el("td", row.id));
+    const photoTd = el("td");
+    if (d.imagePath) {
+      const img = el("img", undefined, { alt: d.imagePath });
+      img.style.cssText = "width:48px;height:48px;object-fit:cover;";
+      getDownloadURL(ref(storage, d.imagePath)).then((url) => { img.src = url; }).catch((err) => { photoTd.title = errText(err); });
+      photoTd.append(img);
+    }
+    tr.append(photoTd);
+    [d.name, d.price, d.stock].forEach((v) => tr.append(el("td", String(v ?? ""))));
     const c1 = el("td"); c1.append(soldOut);
     const c2 = el("td"); c2.append(visible);
     tr.append(c1, c2, last);
@@ -123,31 +186,53 @@ function editRow(row, tr) {
   const d = row.data;
   const editTr = el("tr");
   editTr.dataset.edit = row.id;
-  const td = el("td", undefined, { colSpan: 7 });
+  const td = el("td", undefined, { colSpan: 8 });
   const priceIn = el("input", undefined, { value: d.price ?? "", inputMode: "numeric" });
   const summaryIn = el("input", undefined, { value: d.summary ?? "" });
   const stockIn = el("input", undefined, { value: d.stock ?? "", inputMode: "numeric" });
+  const fileIn = el("input", undefined, { type: "file", accept: "image/*" });
+  const status = el("p");
   const saveBtn = el("button", "저장", { type: "button" });
   const cancelBtn = el("button", "취소", { type: "button" });
   const err = el("p");
   err.style.cssText = "color:#c0392b;white-space:pre-wrap;";
-  td.append("price ", priceIn, " summary ", summaryIn, " stock ", stockIn, " ", saveBtn, cancelBtn, err);
+  td.append("price ", priceIn, " summary ", summaryIn, " stock ", stockIn, " 사진 ", fileIn, " ", saveBtn, cancelBtn, status, err);
   editTr.append(td);
   tr.after(editTr);
   cancelBtn.addEventListener("click", () => editTr.remove());
-  saveBtn.addEventListener("click", () => {
+  saveBtn.addEventListener("click", async () => {
+    err.textContent = "";
     const price = parseWhole(priceIn.value, 1);
     const stock = parseWhole(stockIn.value, 0);
     if (price === null || stock === null) {
       err.textContent = "price 는 1 이상, stock 은 0 이상의 정수로 적어 주세요";
       return;
     }
-    save(row, { price, summary: summaryIn.value, stock }, err);
+    const changes = { price, summary: summaryIn.value, stock };
+    const file = fileIn.files[0];
+    if (file) {
+      const problem = checkFile(file);
+      if (problem) {
+        err.textContent = problem;
+        return;
+      }
+      saveBtn.disabled = true;
+      try {
+        // 다 올라간 뒤에만 경로를 적는다 - 실패하면 아무것도 저장하지 않는다
+        changes.imagePath = await uploadPhoto(row.id, file, status);
+      } catch (error) {
+        err.textContent = errText(error);
+        saveBtn.disabled = false;
+        return;
+      }
+    }
+    save(row, changes, err);
   });
 }
 
 export async function showProducts() {
   db = getFirestore(getApp());
+  storage = getStorage(getApp());
   box.hidden = false;
   box.replaceChildren(el("p", "상품을 읽는 중…"));
   try {

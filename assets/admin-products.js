@@ -11,6 +11,26 @@ const box = document.getElementById("product-admin");
 let rows = [];
 let newNotice = "";
 
+// 보는 방법 - 한 번 읽어 둔 rows 에서 화면이 고른다 (Firestore 에 다시 묻지 않는다)
+let filterMode = "all";
+let searchText = "";
+let sortMode = "";
+
+const FILTERS = [["all", "전체"], ["soldout", "품절만"], ["hidden", "숨김만"]];
+
+function visibleRows() {
+  const needle = searchText.trim().toLowerCase();
+  const shown = rows.filter((row) => {
+    const d = row.data;
+    if (filterMode === "soldout" && d.stock !== 0) return false;
+    if (filterMode === "hidden" && d.isVisible !== false) return false;
+    return !needle || String(d.name ?? "").toLowerCase().includes(needle);
+  });
+  if (sortMode === "stock") shown.sort((a, b) => (a.data.stock ?? Infinity) - (b.data.stock ?? Infinity));
+  if (sortMode === "name") shown.sort((a, b) => String(a.data.name ?? "").localeCompare(String(b.data.name ?? ""), "ko"));
+  return shown;
+}
+
 const MAX_BYTES = 5 * 1024 * 1024;
 
 // 올리기 전에 막는다 - 기다리지 않게 알려 줄 뿐이고, 진짜로 막는 것은 Storage 규칙이다
@@ -131,19 +151,61 @@ ${errText(err)}`;
   });
   box.append(newBtn, newForm);
 
-  // 표
+  // 필터 · 검색 · 정렬 - 눌러도 표 칸만 다시 그린다
+  const controls = el("div");
+  controls.style.cssText = "margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;";
+  const filterBtns = FILTERS.map(([mode, label]) => {
+    const btn = el("button", label, { type: "button" });
+    btn.addEventListener("click", () => {
+      filterMode = mode;
+      markFilter();
+      drawTable();
+    });
+    return [mode, btn];
+  });
+  function markFilter() {
+    filterBtns.forEach(([mode, btn]) => {
+      btn.style.fontWeight = mode === filterMode ? "700" : "400";
+      btn.setAttribute("aria-pressed", String(mode === filterMode));
+    });
+  }
+  const searchIn = el("input", undefined, { type: "search", placeholder: "이름 검색", value: searchText });
+  searchIn.addEventListener("input", () => {
+    searchText = searchIn.value;
+    drawTable();
+  });
+  const sortSel = el("select");
+  [["", "정렬 없음"], ["stock", "재고 적은 순"], ["name", "이름순"]].forEach(([value, label]) => {
+    sortSel.append(el("option", label, { value }));
+  });
+  sortSel.value = sortMode;
+  sortSel.addEventListener("change", () => {
+    sortMode = sortSel.value;
+    drawTable();
+  });
+  controls.append(...filterBtns.map(([, btn]) => btn), searchIn, sortSel);
+  markFilter();
+
+  const tableBox = el("div");
+  box.append(controls, tableBox);
+  drawTable(errorId, errorMessage);
+
+  // 표 - 고른 줄만 그린다
+  function drawTable(errId, errMessage) {
+  const shown = visibleRows();
+  const count = el("p", `지금 보이는 상품 ${shown.length}개 / 전체 ${rows.length}개`);
   const table = el("table");
   table.style.cssText = "width:100%;margin-top:16px;border-collapse:collapse;";
   const head = el("tr");
   ["ID", "사진", "name", "price", "stock", "품절", "노출", ""].forEach((t) => head.append(el("th", t)));
   table.append(head);
 
-  rows.forEach((row) => {
+  shown.forEach((row) => {
     const d = row.data;
     const tr = el("tr");
     const rowErr = el("span");
     rowErr.style.cssText = "color:#c0392b;white-space:pre-wrap;display:block;";
-    if (errorId === row.id) rowErr.textContent = errorMessage;
+    if (errId === row.id) rowErr.textContent = errMessage;
 
     const soldOut = el("input", undefined, { type: "checkbox", checked: d.stock === 0 });
     soldOut.addEventListener("change", () => {
@@ -177,7 +239,8 @@ ${errText(err)}`;
     tr.append(c1, c2, last);
     table.append(tr);
   });
-  box.append(table);
+  tableBox.replaceChildren(count, table);
+  }
 }
 
 // 고치기 - price · summary · stock 칸을 그 줄 아래에 연다

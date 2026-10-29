@@ -1,6 +1,6 @@
 // 관리 화면 상품 표 - 입구가 직원(staff · admin)으로 판단했을 때만 그린다
 import { getApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, addDoc, serverTimestamp, deleteField, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-storage.js";
 
 // 앱은 입구(admin-gate.js)가 만든 뒤에 받는다 - 파일을 불러오는 순간에는 아직 없다
@@ -10,13 +10,15 @@ const box = document.getElementById("product-admin");
 
 let rows = [];
 let newNotice = "";
+let undoRow = null;
+const DELETE = deleteField();
 
 // 보는 방법 - 한 번 읽어 둔 rows 에서 화면이 고른다 (Firestore 에 다시 묻지 않는다)
 let filterMode = "all";
 let searchText = "";
 let sortMode = "";
 
-const FILTERS = [["all", "전체"], ["soldout", "품절만"], ["hidden", "숨김만"]];
+const FILTERS = [["all", "전체"], ["soldout", "품절만"], ["hidden", "숨김만"], ["down", "내린 상품"]];
 
 function visibleRows() {
   const needle = searchText.trim().toLowerCase();
@@ -24,6 +26,7 @@ function visibleRows() {
     const d = row.data;
     if (filterMode === "soldout" && d.stock !== 0) return false;
     if (filterMode === "hidden" && d.isVisible !== false) return false;
+    if (filterMode === "down" && !d.deletedAt) return false;
     return !needle || String(d.name ?? "").toLowerCase().includes(needle);
   });
   if (sortMode === "stock") shown.sort((a, b) => (a.data.stock ?? Infinity) - (b.data.stock ?? Infinity));
@@ -74,12 +77,48 @@ async function save(row, changes, errorEl) {
   errorEl.textContent = "";
   try {
     await updateDoc(doc(db, "products", row.id), changes);
-    Object.assign(row.data, changes);
+    for (const [key, value] of Object.entries(changes)) {
+      if (key === "deletedAt") {
+        // 서버 시각은 화면이 모른다 - 내렸다는 표시만 남긴다
+        if (value === DELETE) delete row.data.deletedAt; else row.data.deletedAt = true;
+      } else {
+        row.data[key] = value;
+      }
+    }
     render();
   } catch (err) {
     errorEl.textContent = errText(err);
+    undoRow = null;
     render(row.id, errText(err));
   }
+}
+
+// 내리기 확인 창 - 글자와 버튼을 하는 일 그대로 적는다
+function confirmTakeDown(name) {
+  return new Promise((resolve) => {
+    const dialog = el("dialog");
+    dialog.append(el("p", `『${name}』을 가게에서 내립니다`));
+    const yes = el("button", "내리기", { type: "button" });
+    const no = el("button", "그만두기", { type: "button" });
+    let answer = false;
+    yes.addEventListener("click", () => { answer = true; dialog.close(); });
+    no.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("close", () => { dialog.remove(); resolve(answer); });
+    dialog.append(yes, no);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+}
+
+async function takeDown(row, errorEl) {
+  if (!(await confirmTakeDown(row.data.name ?? row.id))) return;
+  undoRow = row;
+  await save(row, { deletedAt: serverTimestamp(), isVisible: false }, errorEl);
+}
+
+async function restore(row, errorEl) {
+  undoRow = null;
+  await save(row, { deletedAt: DELETE, isVisible: true }, errorEl);
 }
 
 function parseWhole(text, min) {
@@ -188,6 +227,14 @@ ${errText(err)}`;
 
   const tableBox = el("div");
   box.append(controls, tableBox);
+  if (undoRow) {
+    const bar = el("p", `『${undoRow.data.name ?? undoRow.id}』을 내렸습니다 `);
+    const undoBtn = el("button", "되돌리기", { type: "button" });
+    const target = undoRow;
+    undoBtn.addEventListener("click", () => restore(target, bar));
+    bar.append(undoBtn);
+    box.append(bar);
+  }
   drawTable(errorId, errorMessage);
 
   // 표 - 고른 줄만 그린다
@@ -222,8 +269,14 @@ ${errText(err)}`;
     const editBtn = el("button", "고치기", { type: "button" });
     editBtn.addEventListener("click", () => editRow(row, tr));
 
+    // 내린 상품에는 되돌리기, 그 밖에는 내리기
+    const downBtn = d.deletedAt
+      ? el("button", "되돌리기", { type: "button" })
+      : el("button", "내리기", { type: "button" });
+    downBtn.addEventListener("click", () => (d.deletedAt ? restore(row, rowErr) : takeDown(row, rowErr)));
+
     const last = el("td");
-    last.append(editBtn, rowErr);
+    last.append(editBtn, downBtn, rowErr);
     tr.append(el("td", row.id));
     const photoTd = el("td");
     if (d.imagePath) {
@@ -293,6 +346,27 @@ function editRow(row, tr) {
   });
 }
 
+// 최근 활동 - 함수가 남기는 adminLogs 를 읽기만 한다
+async function loadActivity() {
+  const list = document.getElementById("activity-list");
+  if (!list) return;
+  list.replaceChildren(el("li", "읽는 중…"));
+  try {
+    const snap = await getDocs(query(collection(db, "adminLogs"), orderBy("at", "desc"), limit(10)));
+    list.replaceChildren();
+    if (snap.empty) list.append(el("li", "아직 활동이 없습니다"));
+    snap.docs.forEach((d) => {
+      const log = d.data();
+      const product = rows.find((r) => r.id === log.productId);
+      const when = log.at && log.at.toDate ? log.at.toDate().toLocaleString("ko-KR") : "";
+      const name = product && product.data.name ? product.data.name : log.productId;
+      list.append(el("li", `${when} · ${name} · ${log.action} · ${(log.changedKeys || []).join(", ")}`));
+    });
+  } catch (err) {
+    list.replaceChildren(el("li", errText(err)));
+  }
+}
+
 export async function showProducts() {
   db = getFirestore(getApp());
   storage = getStorage(getApp());
@@ -302,12 +376,19 @@ export async function showProducts() {
     const snap = await getDocs(collection(db, "products"));
     rows = snap.docs.map((d) => ({ id: d.id, data: d.data() })).sort((a, b) => a.id.localeCompare(b.id));
     render();
+    document.getElementById("activity").hidden = false;
+    await loadActivity();
   } catch (err) {
     box.replaceChildren(el("p", errText(err)));
   }
 }
 
 export function hideProducts() {
+  const activity = document.getElementById("activity");
+  if (activity) activity.hidden = true;
   box.hidden = true;
   box.replaceChildren();
 }
+
+const refreshActivity = document.getElementById("activity-refresh");
+if (refreshActivity) refreshActivity.addEventListener("click", loadActivity);

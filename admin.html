@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>관리 — GOAT상점</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="assets/style.css">
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MTQR4WXR');</script>
+<!-- End Google Tag Manager -->
+</head>
+<body>
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MTQR4WXR"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+<main><div class="wrap">
+  <h2>관리 화면</h2>
+  <p id="gate-status" style="margin: 20px 0;">확인하는 중…</p>
+  <div id="gate-actions" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;"></div>
+  <p id="gate-error" style="color: #c0392b; white-space: pre-wrap;"></p>
+  <p style="margin-top: 24px;"><button id="recheck" type="button" hidden>다시 확인</button></p>
+</div></main>
+
+<script type="module" src="assets/admin-gate.js"></script>
+</body>
+</html>
